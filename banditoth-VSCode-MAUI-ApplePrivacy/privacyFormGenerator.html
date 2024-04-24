@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apple Privacy Manifest Editor</title>
+    <style>
+        :root {
+            --background-color: ${getThemeColor('--editor-background')};
+            --text-color: ${getThemeColor('--editor-foreground')};
+            --font-family: ${getThemeSetting('editor.fontFamily')};
+        }
+
+        body {
+            font-family: var(--font-family);
+            color: var(--text-color);
+            background-color: var(--background-color);
+        }
+
+        td {
+            padding: 5px;
+        }
+
+        button {
+            background-color: ${getThemeColor('button.background')};
+            color: ${getThemeColor('button.foreground')};
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: ${getThemeColor('button.hoverBackground')};
+        }
+
+        textarea {
+            width: 100%;
+            resize: none;
+            padding: 5px;
+        }
+
+        .preview-container {
+            margin-bottom: 20px;
+        }
+
+        .preview-container h3 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <h2>Apple Privacy Manifest Editor</h2>
+    <table>
+        <tr>
+            <td><b>Name</b></td>
+            <td><b>Value</b></td>
+        </tr>
+        <tr>
+            <td><b>File Timestamp:</b></td>
+            <td>
+                <select id="fileTimestamp" name="fileTimestamp" onchange="generateXML()">
+                    <option value="exclude">Exclude</option>
+                    <option value="DDA9.1">DDA9.1 - Declare this reason to display file timestamps to the person using the device.</option>
+                    <option value="C617.1">C617.1 - Declare this reason to access the timestamps, size, or other metadata of files inside the app container, app group container, or the app’s CloudKit container.</option>
+                    <option value="3B52.1">3B52.1 - Declare this reason to access the timestamps, size, or other metadata of files or directories that the user specifically granted access to, such as using a document picker view controller.</option>
+                    <option value="0A2A.1">0A2A.1 - Declare this reason if your third-party SDK is providing a wrapper function around file timestamp API(s) for the app to use.</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td><b>System Boot Time:</b></td>
+            <td>
+                <select id="systemBootTime" name="systemBootTime" onchange="generateXML()">
+                    <option value="exclude">Exclude</option>
+                    <option value="35F9.1">35F9.1 - Declare this reason to access the system boot time in order to measure the amount of time that has elapsed between events that occurred within the app or to perform calculations to enable timers.</option>
+                    <option value="8FFB.1">8FFB.1 - Declare this reason to access the system boot time to calculate absolute timestamps for events that occurred within your app.</option>
+                    <option value="3D61.1">3D61.1 - Declare this reason to include system boot time information in an optional bug report that the person using the device chooses to submit.</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td><b>Disk Space:</b></td>
+            <td>
+                <select id="diskSpace" name="diskSpace" onchange="generateXML()">
+                    <option value="exclude">Exclude</option>
+                    <option value="85F4.1">85F4.1 - Declare this reason to display disk space information to the person using the device.</option>
+                    <option value="E174.1">E174.1 - Declare this reason to check whether there is sufficient disk space to write files, or to check whether the disk space is low so that the app can delete files when the disk space is low.</option>
+                    <option value="7D9E.1">7D9E.1 - Declare this reason to include disk space information in an optional bug report that the person using the device chooses to submit.</option>
+                    <option value="B728.1">B728.1 - Declare this reason if your app is a health research app, and you access this API category to detect and inform research participants about low disk space impacting the research data collection.</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td><b>Active Keyboards:</b></td>
+            <td>
+                <select id="activeKeyboards" name="activeKeyboards" onchange="generateXML()">
+                    <option value="exclude">Exclude</option>
+                    <option value="3EC4.1">3EC4.1 - Declare this reason if your app is a custom keyboard app, and you access this API category to determine the keyboards that are active on the device.</option>
+                    <option value="54BD.1">54BD.1 - Declare this reason to access active keyboard information to present the correct customized user interface to the person using the device.</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td><b>User Defaults:</b></td>
+            <td>
+                <select id="userDefaults" name="userDefaults" onchange="generateXML()">
+                    <option value="exclude">Exclude</option>
+                    <option value="CA92.1">CA92.1 - Declare this reason to access user defaults to read and write information that is only accessible to the app itself.</option>
+                    <option value="1C8F.1">1C8F.1 - Declare this reason to access user defaults to read and write information that is only accessible to the apps, app extensions, and App Clips that are members of the same App Group as the app itself.</option>
+                    <option value="C56D.1">C56D.1 - Declare this reason if your third-party SDK is providing a wrapper function around user defaults API(s) for the app to use.</option>
+                    <option value="AC6B.1">AC6B.1 - Declare this reason to access user defaults to read the com.apple.configuration.managed key to retrieve the managed app configuration set by MDM, or to set the com.apple.feedback.managed key to store feedback information to be queried over MDM.</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+
+    <hr>
+
+    <div class="preview-container">
+        <h3>Preview:</h3>
+        <textarea id="generatedXML" rows="40" readonly></textarea>
+    </div>
+
+    <button id="saveButton" onclick="savePrivacyManifest()">Save Privacy Manifest</button>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+
+        function savePrivacyManifest() {
+            const generatedXML = document.getElementById("generatedXML").value;
+
+            vscode.postMessage({
+                command: 'savePrivacyManifest',
+                content: generatedXML
+            });
+        }
+        
+        // TODO: Load requires some additional work, not always gets the proper nodes
+        function loadPrivacyManifest(content) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(content, "text/xml");
+            const dictNodes = xmlDoc.querySelectorAll("dict");
+
+            const getValueByKey = (dictNode, key) => {
+                const keyNodes = dictNode.querySelectorAll("key");
+                for (let i = 0; i < keyNodes.length; i++) {
+                    if (keyNodes[i].textContent === key) {
+                        const valueNode = keyNodes[i].nextElementSibling;
+                        if (valueNode.nodeName === "array") {
+                            const stringNodes = valueNode.querySelectorAll("string");
+                            return Array.from(stringNodes).map(node => node.textContent);
+                        } else {
+                            return valueNode.textContent;
+                        }
+                    }
+                }
+                return 'exclude';
+            };
+
+            document.getElementById("fileTimestamp").value = getValueByKey(dictNodes[0], "NSPrivacyAccessedAPITypeReasons");
+            document.getElementById("systemBootTime").value = getValueByKey(dictNodes[1], "NSPrivacyAccessedAPITypeReasons");
+            document.getElementById("diskSpace").value = getValueByKey(dictNodes[2], "NSPrivacyAccessedAPITypeReasons");
+            document.getElementById("activeKeyboards").value = getValueByKey(dictNodes[3], "NSPrivacyAccessedAPITypeReasons");
+            document.getElementById("userDefaults").value = getValueByKey(dictNodes[4], "NSPrivacyAccessedAPITypeReasons");
+        }
+
+        window.addEventListener('message', event => {
+            const message = event.data;
+            if (message.command === 'loadPrivacyManifest') {
+                loadPrivacyManifest(message.content);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            generateXML();
+        });
+
+        function generateXML() {
+            var fileTimestamp = document.getElementById("fileTimestamp").value;
+            var systemBootTime = document.getElementById("systemBootTime").value;
+            var diskSpace = document.getElementById("diskSpace").value;
+            var activeKeyboards = document.getElementById("activeKeyboards").value;
+            var userDefaults = document.getElementById("userDefaults").value;
+
+            var xmlContent = 
+            `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>`;
+
+            if (fileTimestamp !== "exclude") {
+                xmlContent += `
+<dict>
+    <key>NSPrivacyAccessedAPIType</key>
+    <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+    <key>NSPrivacyAccessedAPITypeReasons</key>
+    <array>
+        <string>${fileTimestamp}</string>
+    </array>
+</dict>`;
+            }
+
+            if (systemBootTime !== "exclude") {
+                xmlContent += `
+<dict>
+    <key>NSPrivacyAccessedAPIType</key>
+    <string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+    <key>NSPrivacyAccessedAPITypeReasons</key>
+    <array>
+        <string>${systemBootTime}</string>
+    </array>
+</dict>`;
+            }
+
+            if (diskSpace !== "exclude") {
+                xmlContent += `
+<dict>
+    <key>NSPrivacyAccessedAPIType</key>
+    <string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+    <key>NSPrivacyAccessedAPITypeReasons</key>
+    <array>
+        <string>${diskSpace}</string>
+    </array>
+</dict>`;
+            }
+
+            if (activeKeyboards !== "exclude") {
+                xmlContent += `
+<dict>
+    <key>NSPrivacyAccessedAPIType</key>
+    <string>NSPrivacyAccessedAPICategoryActiveKeyboards</string>
+    <key>NSPrivacyAccessedAPITypeReasons</key>
+    <array>
+        <string>${activeKeyboards}</string>
+    </array>
+</dict>`;
+            }
+
+            if (userDefaults !== "exclude") {
+                xmlContent += `
+<dict>
+    <key>NSPrivacyAccessedAPIType</key>
+    <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+    <key>NSPrivacyAccessedAPITypeReasons</key>
+    <array>
+        <string>${userDefaults}</string>
+    </array>
+</dict>`;
+            }
+
+            xmlContent += `
+    </array>
+</dict>
+</plist>`;
+
+            document.getElementById("generatedXML").value = xmlContent;
+        }
+
+        // Function to get theme color from VS Code
+        function getThemeColor(themeKey) {
+            const theme = vscode.getState().theme;
+            const colorHex = theme.getColor(themeKey);
+            return colorHex ? colorHex.toString() : '';
+        }
+
+        // Function to get theme setting from VS Code
+        function getThemeSetting(settingKey) {
+            const theme = vscode.getState().theme;
+            return theme.configuration.get(settingKey);
+        }
+    </script>
+</body>
+</html>
