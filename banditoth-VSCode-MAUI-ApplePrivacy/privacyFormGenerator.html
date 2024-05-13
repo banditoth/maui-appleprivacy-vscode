@@ -9,12 +9,28 @@
             --background-color: ${getThemeColor('--editor-background')};
             --text-color: ${getThemeColor('--editor-foreground')};
             --font-family: ${getThemeSetting('editor.fontFamily')};
+            --font-weight: ${getThemeSetting('editor.fontWeight')};
+            --font-size: ${getThemeSetting('editor.fontSize')};
         }
 
         body {
             font-family: var(--font-family);
+            font-weight: var(--font-weight);
+            font-size: var(--font-size);
             color: var(--text-color);
             background-color: var(--background-color);
+        }
+
+        body.vscode-light {
+            color: black; 
+        }
+
+        body.vscode-dark {
+            color: white; 
+        }
+
+        body.vscode-high-contrast {
+            color: yellow; 
         }
 
         td {
@@ -135,33 +151,35 @@
             });
         }
         
-        // TODO: Load requires some additional work, not always gets the proper nodes
         function loadPrivacyManifest(content) {
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(content, "text/xml");
             const dictNodes = xmlDoc.querySelectorAll("dict");
 
-            const getValueByKey = (dictNode, key) => {
-                const keyNodes = dictNode.querySelectorAll("key");
-                for (let i = 0; i < keyNodes.length; i++) {
-                    if (keyNodes[i].textContent === key) {
-                        const valueNode = keyNodes[i].nextElementSibling;
-                        if (valueNode.nodeName === "array") {
-                            const stringNodes = valueNode.querySelectorAll("string");
-                            return Array.from(stringNodes).map(node => node.textContent);
-                        } else {
-                            return valueNode.textContent;
-                        }
-                    }
-                }
-                return 'exclude';
+            const keyToElementId = {
+                "NSPrivacyAccessedAPICategoryFileTimestamp": "fileTimestamp",
+                "NSPrivacyAccessedAPICategorySystemBootTime": "systemBootTime",
+                "NSPrivacyAccessedAPICategoryDiskSpace": "diskSpace",
+                "NSPrivacyAccessedAPICategoryActiveKeyboards": "activeKeyboards",
+                "NSPrivacyAccessedAPICategoryUserDefaults": "userDefaults"
             };
 
-            document.getElementById("fileTimestamp").value = getValueByKey(dictNodes[0], "NSPrivacyAccessedAPITypeReasons");
-            document.getElementById("systemBootTime").value = getValueByKey(dictNodes[1], "NSPrivacyAccessedAPITypeReasons");
-            document.getElementById("diskSpace").value = getValueByKey(dictNodes[2], "NSPrivacyAccessedAPITypeReasons");
-            document.getElementById("activeKeyboards").value = getValueByKey(dictNodes[3], "NSPrivacyAccessedAPITypeReasons");
-            document.getElementById("userDefaults").value = getValueByKey(dictNodes[4], "NSPrivacyAccessedAPITypeReasons");
+            Object.values(keyToElementId).forEach(elementId => {
+                document.getElementById(elementId).value = 'exclude';
+            });
+
+            dictNodes.forEach(dictNode => {
+                const typeNode = Array.from(dictNode.querySelectorAll("key")).find(key => key.textContent.trim() === "NSPrivacyAccessedAPIType");
+                const type = typeNode.nextElementSibling.textContent.trim();
+                const reasonsNode = Array.from(dictNode.querySelectorAll("key")).find(key => key.textContent.trim() === "NSPrivacyAccessedAPITypeReasons").nextElementSibling.querySelector("string");
+                const reason = reasonsNode ? reasonsNode.textContent.trim() : 'exclude';
+                const elementId = keyToElementId[type];
+                if (elementId) {
+                    document.getElementById(elementId).value = reason;
+                }
+            });
+
+            generateXML();
         }
 
         window.addEventListener('message', event => {
@@ -192,62 +210,62 @@
 
             if (fileTimestamp !== "exclude") {
                 xmlContent += `
-<dict>
-    <key>NSPrivacyAccessedAPIType</key>
-    <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
-    <key>NSPrivacyAccessedAPITypeReasons</key>
-    <array>
-        <string>${fileTimestamp}</string>
-    </array>
-</dict>`;
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>${fileTimestamp}</string>
+            </array>
+        </dict>`;
             }
 
             if (systemBootTime !== "exclude") {
                 xmlContent += `
-<dict>
-    <key>NSPrivacyAccessedAPIType</key>
-    <string>NSPrivacyAccessedAPICategorySystemBootTime</string>
-    <key>NSPrivacyAccessedAPITypeReasons</key>
-    <array>
-        <string>${systemBootTime}</string>
-    </array>
-</dict>`;
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>${systemBootTime}</string>
+            </array>
+        </dict>`;
             }
 
             if (diskSpace !== "exclude") {
                 xmlContent += `
-<dict>
-    <key>NSPrivacyAccessedAPIType</key>
-    <string>NSPrivacyAccessedAPICategoryDiskSpace</string>
-    <key>NSPrivacyAccessedAPITypeReasons</key>
-    <array>
-        <string>${diskSpace}</string>
-    </array>
-</dict>`;
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>${diskSpace}</string>
+            </array>
+        </dict>`;
             }
 
             if (activeKeyboards !== "exclude") {
                 xmlContent += `
-<dict>
-    <key>NSPrivacyAccessedAPIType</key>
-    <string>NSPrivacyAccessedAPICategoryActiveKeyboards</string>
-    <key>NSPrivacyAccessedAPITypeReasons</key>
-    <array>
-        <string>${activeKeyboards}</string>
-    </array>
-</dict>`;
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryActiveKeyboards</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>${activeKeyboards}</string>
+            </array>
+        </dict>`;
             }
 
             if (userDefaults !== "exclude") {
                 xmlContent += `
-<dict>
-    <key>NSPrivacyAccessedAPIType</key>
-    <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
-    <key>NSPrivacyAccessedAPITypeReasons</key>
-    <array>
-        <string>${userDefaults}</string>
-    </array>
-</dict>`;
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>${userDefaults}</string>
+            </array>
+        </dict>`;
             }
 
             xmlContent += `
